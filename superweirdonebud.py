@@ -1,4 +1,7 @@
-import streamlit as st, pandas as pd, numpy as np, datetime, boto3, io
+import streamlit as st
+import pandas as pd
+import numpy as np
+import datetime, boto3, io
 from pathlib import Path
 st.set_page_config(page_title="Rottnest Island Conditions Tracker", layout="wide", initial_sidebar_state="collapsed")
 st.markdown("""
