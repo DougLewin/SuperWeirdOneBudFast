@@ -4,6 +4,7 @@ import numpy as np
 import datetime
 import boto3
 import io
+import google.generativeai as genai
 
 st.set_page_config(page_title="Rottnest Island Conditions Tracker", layout="wide", initial_sidebar_state="collapsed")
 st.markdown("""
@@ -78,6 +79,66 @@ input.new-break-input {autocomplete:off !important;}
 .final-score-box h4{margin:0 0 .4rem 0; color:#2eecb5;}
 .final-score-val{font-weight:700; color:#fff; font-size:1.05rem;}
 .final-score-label{color:#7fc9c5; font-size:.75rem; letter-spacing:.07em;}
+
+/* Chatbot floating button */
+.chatbot-float {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  z-index: 999;
+}
+.chatbot-float button {
+  background: linear-gradient(135deg, #2e6f75 0%, #1a4d52 100%) !important;
+  border: 3px solid #2eecb5 !important;
+  color: #ffffff !important;
+  font-size: 1.5rem !important;
+  font-weight: 700 !important;
+  padding: 1rem 1.2rem !important;
+  border-radius: 50% !important;
+  box-shadow: 0 4px 12px rgba(46, 236, 181, 0.3), 0 0 0 2px #0a2426 inset !important;
+  width: 60px !important;
+  height: 60px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+.chatbot-float button:hover {
+  background: linear-gradient(135deg, #33a9b3 0%, #2e6f75 100%) !important;
+  border-color: #ffffff !important;
+  transform: translateY(-3px) scale(1.05) !important;
+  box-shadow: 0 6px 16px rgba(46, 236, 181, 0.5) !important;
+}
+
+/* Chatbot popover styling */
+[data-testid="stPopover"] {
+  position: fixed !important;
+  bottom: 6rem !important;
+  right: 2rem !important;
+  z-index: 998 !important;
+}
+[data-testid="stPopover"] > div {
+  background: linear-gradient(145deg, #162127 0%, #121b20 100%) !important;
+  border: 2px solid #2e6f75 !important;
+  border-radius: 18px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6) !important;
+  min-width: 400px !important;
+  max-width: 500px !important;
+  max-height: 600px !important;
+}
+@media (max-width: 768px) {
+  .chatbot-float {
+    bottom: 1rem;
+    right: 1rem;
+  }
+  [data-testid="stPopover"] {
+    bottom: 5rem !important;
+    right: 1rem !important;
+  }
+  [data-testid="stPopover"] > div {
+    min-width: 320px !important;
+    max-width: calc(100vw - 2rem) !important;
+  }
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -122,6 +183,18 @@ except Exception as e:
         """)
         st.info("See STREAMLIT_CLOUD_SETUP.md for detailed instructions")
         st.stop()
+
+# Google Gemini Configuration
+try:
+    if 'GEMINI_API_KEY' in st.secrets:
+        genai.configure(api_key=st.secrets['GEMINI_API_KEY'])
+        gemini_model = genai.GenerativeModel('gemini-pro')
+    else:
+        gemini_model = None
+        st.warning("⚠️ Gemini API key not found. Chatbot will be disabled.")
+except Exception as e:
+    gemini_model = None
+    st.warning(f"⚠️ Failed to initialize Gemini: {str(e)}")
 
 COLUMNS = ["Date","Time","Break","Zone","TOTAL SCORE",
            "Surfline Primary Swell Size (m)","Seabreeze Swell (m)",
@@ -731,3 +804,71 @@ else:
             save_df(surf_df)
             st.success("Saved")
             st.session_state.creating=False; st.session_state.draft={}; st.rerun()
+
+# ============================================================
+# CHATBOT - Persistent floating chat interface using Gemini
+# ============================================================
+
+# Initialize chat history in session state
+if 'chat_history' not in st.session_state:
+    st.session_state.chat_history = []
+if 'chat_open' not in st.session_state:
+    st.session_state.chat_open = False
+
+# Create a container for the chatbot button
+st.markdown('<div class="chatbot-float">', unsafe_allow_html=True)
+
+# Use popover for the chat interface
+with st.popover("💬", use_container_width=False):
+    st.markdown("### 🤖 AI Assistant")
+    st.markdown("Ask me anything! (Currently in general mode)")
+    
+    # Display chat history
+    chat_container = st.container(height=400)
+    with chat_container:
+        for message in st.session_state.chat_history:
+            with st.chat_message(message["role"]):
+                st.markdown(message["content"])
+    
+    # Chat input
+    if prompt := st.chat_input("Type your message...", key="chat_input"):
+        # Check if Gemini is available
+        if gemini_model is None:
+            st.error("❌ Chatbot is not available. Please configure GEMINI_API_KEY in secrets.")
+        else:
+            # Add user message to chat history
+            st.session_state.chat_history.append({"role": "user", "content": prompt})
+            
+            # Display user message
+            with chat_container:
+                with st.chat_message("user"):
+                    st.markdown(prompt)
+            
+            # Get response from Gemini
+            try:
+                with st.spinner("Thinking..."):
+                    response = gemini_model.generate_content(prompt)
+                    assistant_message = response.text
+                
+                # Add assistant response to chat history
+                st.session_state.chat_history.append({"role": "assistant", "content": assistant_message})
+                
+                # Display assistant response
+                with chat_container:
+                    with st.chat_message("assistant"):
+                        st.markdown(assistant_message)
+                
+                # Rerun to update the display
+                st.rerun()
+                
+            except Exception as e:
+                error_msg = f"❌ Error: {str(e)}"
+                st.error(error_msg)
+                st.session_state.chat_history.append({"role": "assistant", "content": error_msg})
+    
+    # Clear chat button
+    if st.button("🗑️ Clear Chat", key="clear_chat"):
+        st.session_state.chat_history = []
+        st.rerun()
+
+st.markdown('</div>', unsafe_allow_html=True)
