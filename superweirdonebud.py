@@ -87,15 +87,29 @@ S3_KEY = "Rotto_Tracker.csv"
 
 # Initialize S3 client
 try:
-    # Try with environment variables first (for production deployment)
-    s3 = boto3.client('s3', region_name='ap-southeast-2')
-except:
+    # First try Streamlit secrets (for Streamlit Cloud deployment)
+    if 'AWS_ACCESS_KEY_ID' in st.secrets:
+        s3 = boto3.client(
+            's3',
+            region_name='ap-southeast-2',
+            aws_access_key_id=st.secrets['AWS_ACCESS_KEY_ID'],
+            aws_secret_access_key=st.secrets['AWS_SECRET_ACCESS_KEY']
+        )
+    else:
+        # Fallback to environment variables (for EC2/local with env vars)
+        s3 = boto3.client('s3', region_name='ap-southeast-2')
+except Exception as e:
+    # If both fail, try local profile for development
     try:
-        # Fallback to local profile for development
         s3 = boto3.Session(profile_name='doug-personal').client('s3', region_name='ap-southeast-2')
-    except Exception as e:
-        st.error(f"Failed to connect to AWS S3: {str(e)}")
-        st.error("Make sure AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY environment variables are set")
+    except Exception as e2:
+        st.error(f"❌ Failed to connect to AWS S3: {str(e)}")
+        st.error("**Configuration needed:** Set AWS credentials in one of these ways:")
+        st.markdown("""
+        - **Streamlit Cloud**: Add `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` to Secrets
+        - **Local/EC2**: Configure AWS credentials file or environment variables
+        """)
+        st.info("See STREAMLIT_CLOUD_SETUP.md for detailed instructions")
         st.stop()
 
 COLUMNS = ["Date","Time","Break","Zone","TOTAL SCORE",
