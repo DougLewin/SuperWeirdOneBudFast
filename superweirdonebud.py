@@ -185,16 +185,22 @@ except Exception as e:
         st.stop()
 
 # Google Gemini Configuration
+gemini_model = None
 try:
-    if 'GEMINI_API_KEY' in st.secrets:
-        genai.configure(api_key=st.secrets['GEMINI_API_KEY'])
-        gemini_model = genai.GenerativeModel('gemini-pro')
-    else:
-        gemini_model = None
-        st.warning("⚠️ Gemini API key not found. Chatbot will be disabled.")
+    # Check if secrets are available at all
+    if hasattr(st, 'secrets') and st.secrets:
+        if 'GEMINI_API_KEY' in st.secrets:
+            genai.configure(api_key=st.secrets['GEMINI_API_KEY'])
+            gemini_model = genai.GenerativeModel('gemini-pro')
+        else:
+            # Secrets exist but no GEMINI_API_KEY - silently disable chatbot
+            pass
 except Exception as e:
-    gemini_model = None
-    st.warning(f"⚠️ Failed to initialize Gemini: {str(e)}")
+    # Catch any errors (including missing secrets.toml) and silently disable chatbot
+    # Only show warning if it's not a "no secrets found" error
+    if "No secrets found" not in str(e):
+        st.warning(f"⚠️ Failed to initialize Gemini: {str(e)}")
+    pass
 
 COLUMNS = ["Date","Time","Break","Zone","TOTAL SCORE",
            "Surfline Primary Swell Size (m)","Seabreeze Swell (m)",
