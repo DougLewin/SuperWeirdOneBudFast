@@ -84,7 +84,7 @@ input.new-break-input {autocomplete:off !important;}
 .chatbot-float {
   position: fixed;
   bottom: 2rem;
-  right: 2rem;
+  left: 2rem;
   z-index: 999;
 }
 .chatbot-float button {
@@ -113,7 +113,7 @@ input.new-break-input {autocomplete:off !important;}
 [data-testid="stPopover"] {
   position: fixed !important;
   bottom: 6rem !important;
-  right: 2rem !important;
+  left: 2rem !important;
   z-index: 998 !important;
 }
 [data-testid="stPopover"] > div {
@@ -128,11 +128,11 @@ input.new-break-input {autocomplete:off !important;}
 @media (max-width: 768px) {
   .chatbot-float {
     bottom: 1rem;
-    right: 1rem;
+    left: 1rem;
   }
   [data-testid="stPopover"] {
     bottom: 5rem !important;
-    right: 1rem !important;
+    left: 1rem !important;
   }
   [data-testid="stPopover"] > div {
     min-width: 320px !important;
@@ -191,8 +191,14 @@ try:
     if hasattr(st, 'secrets') and st.secrets:
         if 'GEMINI_API_KEY' in st.secrets:
             genai.configure(api_key=st.secrets['GEMINI_API_KEY'])
-            # Use gemini-2.5-flash (latest model)
-            gemini_model = genai.GenerativeModel('gemini-2.5-flash')
+            # Use gemini-2.5-flash with Google Search tool for real-time data access
+            tools = [
+                genai.protos.Tool(google_search_retrieval=genai.protos.GoogleSearchRetrieval())
+            ]
+            gemini_model = genai.GenerativeModel(
+                'gemini-2.5-flash',
+                tools=tools
+            )
         else:
             # Secrets exist but no GEMINI_API_KEY - silently disable chatbot
             pass
@@ -816,6 +822,36 @@ else:
 # CHATBOT - Persistent floating chat interface using Gemini
 # ============================================================
 
+# System prompt for surf forecasting
+SURF_FORECAST_SYSTEM_PROMPT = """You are a surf forecasting assistant. Your role is to provide concise surf and weather forecasts.
+
+CRITICAL RULES:
+1. Keep responses under 100 words - be brief and direct
+2. ONLY use these sources (check all 4):
+   - Seabreeze: https://www.seabreeze.com.au
+   - Surfline: https://www.surfline.com/
+   - Windy: https://www.windy.com/-Waves-waves
+   - BOM (Bureau of Meteorology): https://www.bom.gov.au/
+3. DO NOT use any other websites or sources
+4. Always show what EACH website predicts (they often differ)
+5. MUST include for each source:
+   - Wind: speed (knots) and direction
+   - Swell: size (meters) and direction
+   - Tide: height and time (if available)
+6. If user doesn't specify location and time, remind them to include it
+7. Format: Use bullet points for each source, be specific and clear
+
+Example response format:
+"For [Location] on [Date/Time]:
+
+🌊 Seabreeze: Wind 15kn SW, Swell 1.5m W, Tide 1.2m at 2pm
+🏄 Surfline: Wind 12kn SSW, Swell 1.8m WNW
+💨 Windy: Wind 18kn SW, Swell 1.6m W
+☁️ BOM: Wind 14kn SW, conditions [details]
+
+Best for: [brief assessment]"
+"""
+
 # Initialize chat history in session state
 if 'chat_history' not in st.session_state:
     st.session_state.chat_history = []
@@ -826,9 +862,10 @@ if 'chat_open' not in st.session_state:
 st.markdown('<div class="chatbot-float">', unsafe_allow_html=True)
 
 # Use popover for the chat interface
-with st.popover("💬", use_container_width=False):
-    st.markdown("### 🤖 AI Assistant")
-    st.markdown("Ask me anything! (Currently in general mode)")
+with st.popover("🌊", use_container_width=False):
+    st.markdown("### 🏄 Surf Forecast Assistant")
+    st.markdown("**📍 Include location & specific time in your question**")
+    st.caption("_e.g., 'Rottnest Island conditions Monday 2pm'_")
     
     # Display chat history
     chat_container = st.container(height=400)
@@ -838,7 +875,7 @@ with st.popover("💬", use_container_width=False):
                 st.markdown(message["content"])
     
     # Chat input
-    if prompt := st.chat_input("Type your message...", key="chat_input"):
+    if prompt := st.chat_input("Ask about surf conditions...", key="chat_input"):
         # Check if Gemini is available
         if gemini_model is None:
             st.error("❌ Chatbot is not available. Please configure GEMINI_API_KEY in secrets.")
@@ -853,8 +890,10 @@ with st.popover("💬", use_container_width=False):
             
             # Get response from Gemini
             try:
-                with st.spinner("Thinking..."):
-                    response = gemini_model.generate_content(prompt)
+                with st.spinner("Checking forecasts..."):
+                    # Combine system prompt with user prompt
+                    full_prompt = f"{SURF_FORECAST_SYSTEM_PROMPT}\n\nUser question: {prompt}"
+                    response = gemini_model.generate_content(full_prompt)
                     assistant_message = response.text
                 
                 # Add assistant response to chat history
