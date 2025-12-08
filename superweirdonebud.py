@@ -4,7 +4,8 @@ import numpy as np
 import datetime
 import boto3
 import io
-import google.generativeai as genai
+import requests
+import json
 
 st.set_page_config(page_title="Rottnest Island Conditions Tracker", layout="wide", initial_sidebar_state="collapsed")
 st.markdown("""
@@ -185,14 +186,12 @@ except Exception as e:
         st.stop()
 
 # Google Gemini Configuration
-gemini_model = None
+gemini_api_key = None
 try:
     # Check if secrets are available at all
     if hasattr(st, 'secrets') and st.secrets:
         if 'GEMINI_API_KEY' in st.secrets:
-            genai.configure(api_key=st.secrets['GEMINI_API_KEY'])
-            # Use gemini-2.5-flash (latest model)
-            gemini_model = genai.GenerativeModel('gemini-2.5-flash')
+            gemini_api_key = st.secrets['GEMINI_API_KEY']
         else:
             # Secrets exist but no GEMINI_API_KEY - silently disable chatbot
             pass
@@ -813,69 +812,6 @@ else:
             st.session_state.creating=False; st.session_state.draft={}; st.rerun()
 
 # ============================================================
-# CHATBOT - Persistent floating chat interface using Gemini
+# CHATBOT - DISABLED
 # ============================================================
-
-# Initialize chat history in session state
-if 'chat_history' not in st.session_state:
-    st.session_state.chat_history = []
-if 'chat_open' not in st.session_state:
-    st.session_state.chat_open = False
-
-# Create a container for the chatbot button
-st.markdown('<div class="chatbot-float">', unsafe_allow_html=True)
-
-# Use popover for the chat interface
-with st.popover("💬", use_container_width=False):
-    st.markdown("### 🤖 AI Assistant")
-    st.markdown("Ask me anything! (Currently in general mode)")
-    
-    # Display chat history
-    chat_container = st.container(height=400)
-    with chat_container:
-        for message in st.session_state.chat_history:
-            with st.chat_message(message["role"]):
-                st.markdown(message["content"])
-    
-    # Chat input
-    if prompt := st.chat_input("Type your message...", key="chat_input"):
-        # Check if Gemini is available
-        if gemini_model is None:
-            st.error("❌ Chatbot is not available. Please configure GEMINI_API_KEY in secrets.")
-        else:
-            # Add user message to chat history
-            st.session_state.chat_history.append({"role": "user", "content": prompt})
-            
-            # Display user message
-            with chat_container:
-                with st.chat_message("user"):
-                    st.markdown(prompt)
-            
-            # Get response from Gemini
-            try:
-                with st.spinner("Thinking..."):
-                    response = gemini_model.generate_content(prompt)
-                    assistant_message = response.text
-                
-                # Add assistant response to chat history
-                st.session_state.chat_history.append({"role": "assistant", "content": assistant_message})
-                
-                # Display assistant response
-                with chat_container:
-                    with st.chat_message("assistant"):
-                        st.markdown(assistant_message)
-                
-                # Rerun to update the display
-                st.rerun()
-                
-            except Exception as e:
-                error_msg = f"❌ Error: {str(e)}"
-                st.error(error_msg)
-                st.session_state.chat_history.append({"role": "assistant", "content": error_msg})
-    
-    # Clear chat button
-    if st.button("🗑️ Clear Chat", key="clear_chat"):
-        st.session_state.chat_history = []
-        st.rerun()
-
-st.markdown('</div>', unsafe_allow_html=True)
+# Chatbot has been disabled and hidden from the interface
