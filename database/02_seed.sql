@@ -1,0 +1,84 @@
+-- ============================================================
+-- SAMPLE DATA FOR TESTING (OPTIONAL)
+-- ============================================================
+-- Note: These inserts will only work if you manually create test users
+-- in Supabase Auth first. The UUIDs below are examples.
+
+-- Sample test user profile
+-- (This will be auto-created via trigger when user signs up)
+-- But you can manually insert if needed for testing:
+
+-- INSERT INTO public.profiles (id, email, username, full_name)
+-- VALUES 
+--     ('00000000-0000-0000-0000-000000000001'::UUID, 'test@example.com', 'testuser', 'Test User');
+
+-- Sample community
+-- INSERT INTO public.communities (id, name, description, owner_id)
+-- VALUES 
+--     ('00000000-0000-0000-0000-000000000002'::UUID, 'Perth Surfers', 'Perth area surf forecasting community', '00000000-0000-0000-0000-000000000001'::UUID);
+
+-- Sample community membership
+-- INSERT INTO public.community_members (community_id, user_id, role)
+-- VALUES 
+--     ('00000000-0000-0000-0000-000000000002'::UUID, '00000000-0000-0000-0000-000000000001'::UUID, 'owner');
+
+-- Sample surf session record
+-- INSERT INTO public.records (
+--     user_id, 
+--     publicity, 
+--     date, 
+--     time, 
+--     break, 
+--     zone, 
+--     total_score,
+--     surfline_primary_swell_size_m,
+--     seabreeze_swell_m,
+--     swell_period_s,
+--     swell_direction,
+--     suitable_swell,
+--     swell_score,
+--     final_swell_score,
+--     swell_comments,
+--     wind_bearing,
+--     wind_speed_kn,
+--     suitable_wind,
+--     wind_score,
+--     wind_final_score,
+--     wind_comments,
+--     tide_reading_m,
+--     tide_direction,
+--     tide_suitable,
+--     tide_score,
+--     tide_final_score,
+--     tide_comments,
+--     full_commentary
+-- ) VALUES (
+--     '00000000-0000-0000-0000-000000000001'::UUID,
+--     'Public',
+--     '2025-02-10',
+--     '08:00:00',
+--     'Stark',
+--     'Rotto',
+--     41.7,
+--     4.3,
+--     2.1,
+--     16,
+--     231.0,
+--     'Yes',
+--     10,
+--     10,
+--     'Excellent swell, bit big for short boards, needed a 6''2"',
+--     'SE',
+--     12,
+--     'Yes',
+--     5,
+--     5,
+--     'Super clean with the SE, got a bit funny when wind turned E',
+--     0.87,
+--     'High',
+--     'Ok',
+--     5,
+--     2.5,
+--     'Tide seemed good. Would need a lower tide with a smaller swell',
+--     'Excellent swell, bit big for short boards, needed a 6''2" Super clean with the SE, got a bit funny when wind turned E Tide seemed good. Would need a lower tide with a smaller swell'
+-- );
