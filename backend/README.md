@@ -1,7 +1,7 @@
 # Super Weird One Bud API
 
 FastAPI backend for Rottnest Island Surf Tracker
-
+ 
 ## Quick Start
 
 ```bash
