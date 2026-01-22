@@ -26,6 +26,16 @@ app.add_middleware(
 )
 
 
+@app.get("/health", response_model=HealthResponse)
+def health_check():
+    """Health check endpoint for Railway"""
+    return {
+        "status": "online", 
+        "message": "System operational",
+        "version": "1.0.0"
+    }
+
+
 def calculate_score(cost: float, estimated_return: float, 
                     swell_score: Optional[float] = None,
                     wind_score: Optional[float] = None,
