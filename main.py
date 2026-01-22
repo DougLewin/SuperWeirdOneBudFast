@@ -6,8 +6,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime
 from typing import Optional
 
-from models import HealthResponse, SurfSessionCreate, SurfSessionResponse, SurfSessionList
+from models import SurfSessionCreate, SurfSessionResponse, SurfSessionList
 from db import get_db
+from health import router as health_router
 
 # Initialize app
 app = FastAPI(
@@ -15,6 +16,9 @@ app = FastAPI(
     description="Surf Conditions Tracker",
     version="1.0.0"
 )
+
+# Include routers
+app.include_router(health_router)
 
 # CORS
 app.add_middleware(
@@ -24,16 +28,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
-@app.get("/health", response_model=HealthResponse)
-def health_check():
-    """Health check endpoint for Railway"""
-    return {
-        "status": "online", 
-        "message": "System operational",
-        "version": "1.0.0"
-    }
 
 
 def calculate_score(cost: float, estimated_return: float, 
