@@ -5,6 +5,9 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime
 from typing import Optional
+from dotenv import load_dotenv
+
+load_dotenv()
 
 from models import SurfSessionCreate, SurfSessionResponse, SurfSessionList
 from db import get_db
@@ -48,12 +51,6 @@ def calculate_score(cost: float, estimated_return: float,
 async def root():
     """Root endpoint"""
     return {"message": "Hello World"}
-
-
-@app.get("/health", response_model=HealthResponse)
-async def health():
-    """Health check for Railway"""
-    return {"status": "healthy", "message": "API running", "version": "1.0.0"}
 
 
 @app.post("/submit-idea", response_model=SurfSessionResponse, status_code=201)

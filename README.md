@@ -91,7 +91,7 @@ CREATE POLICY "Enable all for all users" ON surf_sessions FOR ALL USING (true);
    - `SUPABASE_KEY`
 4. Deploy!
 
-Railway will auto-detect the Dockerfile and deploy.
+Railway will use the configuration in `railway.toml` (Nixpacks) to build and deploy the application. It will run `python -m uvicorn main:app --host 0.0.0.0 --port $PORT`.
 
 ## Tech Stack
 
