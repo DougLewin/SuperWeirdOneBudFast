@@ -82,16 +82,17 @@ ALTER TABLE surf_sessions ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Enable all for all users" ON surf_sessions FOR ALL USING (true);
 ```
 
-## Railway Deployment
+## Vercel Deployment
 
-1. Push to GitHub
-2. Create new Railway project from GitHub repo
-3. Add environment variables:
-   - `SUPABASE_URL`
-   - `SUPABASE_KEY`
-4. Deploy!
+1. **Install Vercel CLI** (optional, for local testing): `npm i -g vercel`
+2. **Push to GitHub**
+3. **Import Project in Vercel Dashboard**
+   - Connect your GitHub repository.
+   - Framework Preset: **Other** (Override if necessary, but Vercel detects Python).
+   - **Environment Variables**: Add `SUPABASE_URL` and `SUPABASE_KEY`.
+4. **Deploy**
 
-Railway will use the configuration in `railway.toml` (Nixpacks) to build and deploy the application. It will run `python -m uvicorn main:app --host 0.0.0.0 --port $PORT`.
+The `vercel.json` file handles the configuration, directing traffic to `main.py`.
 
 ## Tech Stack
 

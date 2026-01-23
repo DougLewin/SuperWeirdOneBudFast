@@ -5,7 +5,7 @@ router = APIRouter()
 
 @router.get("/health", response_model=HealthResponse)
 def health_check():
-    """Health check endpoint for Railway"""
+    """Health check endpoint"""
     return {
         "status": "online",
         "message": "System operational",
