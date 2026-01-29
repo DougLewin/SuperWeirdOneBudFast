@@ -4,8 +4,9 @@ FastAPI Backend - Super Weird One Bud Surf Tracker
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 from dotenv import load_dotenv
+from pydantic import BaseModel, Field
 
 load_dotenv()
 
@@ -22,6 +23,22 @@ app = FastAPI(
 
 # Include routers
 app.include_router(health_router)
+
+# Break Masterdata Models
+class Break(BaseModel):
+    break_id: str
+    # 'break' is a reserved keyword in Python, so we use an alias to map to the DB column
+    break_name: str = Field(..., alias="break")
+    zone: Optional[str] = None
+    latitude: Optional[str] = None
+    longitude: Optional[str] = None
+    description: Optional[str] = None
+    ability_level: Optional[int] = None
+    publicity: Optional[str] = None
+
+class BreakList(BaseModel):
+    breaks: List[Break]
+    count: int
 
 # CORS
 app.add_middleware(
@@ -68,11 +85,23 @@ async def create_session(session: SurfSessionCreate):
             session.tide_score
         )
         
+        # Lookup break_id from dim_break
+        break_id = None
+        try:
+            # Match 'break' column in dim_break with session 'title'
+            break_res = db.table("dim_break").select("break_id").eq("break", session.title).execute()
+            if break_res.data:
+                break_id = break_res.data[0]["break_id"]
+        except Exception:
+            # Continue without linking if lookup fails
+            pass
+
         # Prepare data
         data = {
             "date": session.date.isoformat() if session.date else datetime.now().date().isoformat(),
             "time": session.time or datetime.now().strftime("%H:%M"),
             "break": session.title,
+            "break_id": break_id,
             "zone": session.zone,
             "total_score": total,
             "surfline_primary_swell_size": session.swell_size_surfline,
@@ -111,6 +140,39 @@ async def create_session(session: SurfSessionCreate):
             created_at=record.get("created_at", datetime.now().isoformat())
         )
         
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(500, f"Error: {str(e)}")
+
+
+@app.get("/breaks", response_model=BreakList)
+async def get_breaks(zone: Optional[str] = None):
+    """Get all surf breaks from masterdata"""
+    try:
+        db = get_db()
+        query = db.table("dim_break").select("*")
+        
+        if zone:
+            query = query.eq("zone", zone)
+            
+        result = query.execute()
+        return BreakList(breaks=result.data, count=len(result.data))
+    except Exception as e:
+        raise HTTPException(500, f"Error: {str(e)}")
+
+
+@app.get("/breaks/{break_id}", response_model=Break)
+async def get_break(break_id: str):
+    """Get single break details"""
+    try:
+        db = get_db()
+        result = db.table("dim_break").select("*").eq("break_id", break_id).execute()
+        
+        if not result.data:
+            raise HTTPException(404, "Break not found")
+        
+        return result.data[0]
     except HTTPException:
         raise
     except Exception as e:
